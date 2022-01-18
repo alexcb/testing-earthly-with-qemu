@@ -31,9 +31,9 @@ eval "$(ssh-agent -s)"
 ssh-add vm-testkey
 
 if ! [ -f "focal-server-cloudimg-amd64.img" ]; then
-    wget http://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+    wget http://cloud-images.ubuntu.com/focal/20220111/focal-server-cloudimg-amd64.img
 fi
-echo "f203162f0fb2a1f607547f479e57b7f9544c485859f3a8758eb89c0dd49b3bc0 *focal-server-cloudimg-amd64.img" | shasum -a 256 --check
+echo "9885804a77e0d7572787ba89e1f3998bdbe45005cb5c51d391d3c6647fdeedb0 *focal-server-cloudimg-amd64.img" | shasum -a 256 --check
 
 qemu-img create -b focal-server-cloudimg-amd64.img -f qcow2 -F qcow2 "$HOSTNAME.img" 10G
 
