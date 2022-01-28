@@ -169,7 +169,7 @@ exit_code=$(tail -n 1 output.txt | cut -d "=" -f2)
 if [ "$KEEP_QEMU" = "true" ]; then
 
     echo "to access the qemu vm, run:"
-    echo "  eval \"$(ssh-agent -s)\""
+    echo "  eval \"\$(ssh-agent -s)\""
     echo "  ssh-add vm-testkey"
     echo "  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1" 
 
