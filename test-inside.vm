@@ -2,6 +2,13 @@
 set -e
 echo "I am running on $(hostname)"
 
+test "$UID" = "0" || (echo "this script should be run as root" && exit 1)
+
+if ! ls /sys/fs/cgroup/cgroup.controllers; then
+    echo "cgroups v2 is not installed"
+    exit 1
+fi
+
 # for apt to be noninteractive
 export DEBIAN_FRONTEND noninteractive
 export DEBCONF_NONINTERACTIVE_SEEN true
@@ -24,7 +31,13 @@ apt-get install -y docker-ce docker-ce-cli containerd.io
 
 docker run hello-world
 
+usermod -aG docker ubuntu
+
 wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly && /usr/local/bin/earthly bootstrap --with-autocomplete
 
 earthly github.com/earthly/hello-world+hello
 
+git clone https://github.com/earthly/earthly.git
+cd earthly
+earthly +for-linux
+./build/linux/amd64/earthly -P +unit-test

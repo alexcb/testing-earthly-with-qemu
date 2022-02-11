@@ -35,8 +35,10 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-rm -f vm-testkey
-ssh-keygen -b 3072 -t rsa -f vm-testkey -q -N "" -C "rsa-testkey"
+#rm -f vm-testkey
+if [ ! -f vm-testkey ]; then 
+  ssh-keygen -b 3072 -t rsa -f vm-testkey -q -N "" -C "rsa-testkey"
+fi
 PUBLIC_SSH_KEY="$(cat vm-testkey.pub)"
 eval "$(ssh-agent -s)"
 ssh-add vm-testkey
@@ -125,6 +127,7 @@ qemu-system-x86_64 \
    -hda "$HOSTNAME.img" \
    -cdrom cidata.iso \
    $NOGRAPHICS \
+   -enable-kvm \
    -netdev user,id=mynet0,hostfwd=tcp::$SSH_FORWARD_PORT-:22 -device e1000,netdev=mynet0 &
    echo \$! > qemu.pid
 EOF
@@ -156,6 +159,24 @@ while true; do
     echo "sleeping 10 seconds before retrying; $timer_remaining seconds left before giving up"
     sleep 10
 done
+
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "who -b" | tee /tmp/current-boot-before-cgroup-setup
+
+scp -P $SSH_FORWARD_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null setup-cgroups-v2.sh $USERNAME@127.0.0.1:.
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "chmod +x ./setup-cgroups-v2.sh && sudo ./setup-cgroups-v2.sh; echo exit_code=\$?" | tee output.txt
+
+set +e
+while true; do
+    sleep 15
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "who -b" | tee /tmp/current-boot-after-cgroup-setup
+    if grep "system boot" /tmp/current-boot-after-cgroup-setup; then 
+        if ! diff /tmp/current-boot-before-cgroup-setup /tmp/current-boot-after-cgroup-setup; then
+            echo "server has rebooted"
+            break
+        fi
+    fi
+done
+set -e
 
 scp -P $SSH_FORWARD_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null test-inside.vm $USERNAME@127.0.0.1:.
 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "chmod +x ./test-inside.vm && sudo ./test-inside.vm; echo exit_code=\$?" | tee output.txt
@@ -189,10 +210,21 @@ exit "$exit_code"
 #     GRUB_CMDLINE_LINUX="systemd.unified_cgroup_hierarchy=1 cgroup_no_v1=all"
 # but this still shows v1 running.
 #
+# if cgroups v2 is not enabled, this will fail:
+#     ls /sys/fs/cgroup/cgroup.controllers
+#
+# to setup cgroups v2, edit /etc/default/grub
+# and add 
+#     GRUB_CMDLINE_LINUX="systemd.unified_cgroup_hierarchy=1"
+#
 # then run
 #     update-grub && reboot now
 #
 # Once back inside the VM, run:
+#     ls /sys/fs/cgroup/cgroup.controllers
+# to verify cgroups v2 is working
+#
+#
 #     sudo docker run --rm alpine /bin/sh -c 'while true; do whoami | md5sum; done'  # to simulate the load in one session
 #     systemd-cgtop | grep -i docker # run this in another session
 # which should show:
