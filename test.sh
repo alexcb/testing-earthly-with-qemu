@@ -118,6 +118,8 @@ else
     NOGRAPHICS=""
 fi
 
+#ENABLE_KVM="-enable-kvm"
+
 cat > qemu.cmd <<EOF
 qemu-system-x86_64 \
    -nodefaults \
@@ -127,7 +129,7 @@ qemu-system-x86_64 \
    -hda "$HOSTNAME.img" \
    -cdrom cidata.iso \
    $NOGRAPHICS \
-   -enable-kvm \
+   $ENABLE_KVM \
    -netdev user,id=mynet0,hostfwd=tcp::$SSH_FORWARD_PORT-:22 -device e1000,netdev=mynet0 &
    echo \$! > qemu.pid
 EOF
@@ -160,23 +162,27 @@ while true; do
     sleep 10
 done
 
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "who -b" | tee /tmp/current-boot-before-cgroup-setup
-
-scp -P $SSH_FORWARD_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null setup-cgroups-v2.sh $USERNAME@127.0.0.1:.
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "chmod +x ./setup-cgroups-v2.sh && sudo ./setup-cgroups-v2.sh; echo exit_code=\$?" | tee output.txt
-
-set +e
-while true; do
-    sleep 15
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "who -b" | tee /tmp/current-boot-after-cgroup-setup
-    if grep "system boot" /tmp/current-boot-after-cgroup-setup; then 
-        if ! diff /tmp/current-boot-before-cgroup-setup /tmp/current-boot-after-cgroup-setup; then
-            echo "server has rebooted"
-            break
+ENABLE_CGROUP_V2="true"
+if [ -n "$ENABLE_CGROUP_V2" ]; then
+    echo enabling cgroups v2
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "who -b" | tee /tmp/current-boot-before-cgroup-setup
+    
+    scp -P $SSH_FORWARD_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null setup-cgroups-v2.sh $USERNAME@127.0.0.1:.
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "chmod +x ./setup-cgroups-v2.sh && sudo ./setup-cgroups-v2.sh; echo exit_code=\$?" | tee output.txt
+    
+    set +e
+    while true; do
+        sleep 15
+        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "who -b" | tee /tmp/current-boot-after-cgroup-setup
+        if grep "system boot" /tmp/current-boot-after-cgroup-setup; then 
+            if ! diff /tmp/current-boot-before-cgroup-setup /tmp/current-boot-after-cgroup-setup; then
+                echo "server has rebooted"
+                break
+            fi
         fi
-    fi
-done
-set -e
+    done
+    set -e
+fi
 
 scp -P $SSH_FORWARD_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null test-inside.vm $USERNAME@127.0.0.1:.
 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "chmod +x ./test-inside.vm && sudo ./test-inside.vm; echo exit_code=\$?" | tee output.txt

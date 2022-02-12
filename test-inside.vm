@@ -4,8 +4,10 @@ echo "I am running on $(hostname)"
 
 test "$UID" = "0" || (echo "this script should be run as root" && exit 1)
 
-if ! ls /sys/fs/cgroup/cgroup.controllers; then
-    echo "cgroups v2 is not installed"
+if ls /sys/fs/cgroup/cgroup.controllers; then
+    echo "Running with cgroup v2"
+else
+    echo "Running with cgroup v1"
     exit 1
 fi
 
@@ -39,5 +41,20 @@ earthly github.com/earthly/hello-world+hello
 
 git clone https://github.com/earthly/earthly.git
 cd earthly
+
 earthly +for-linux
-./build/linux/amd64/earthly -P +unit-test
+
+mkdir ~/podman-in-earthly
+
+cat > ~/podman-in-earthly/Earthfile <<EOF
+test:
+    FROM alpine:3.14
+    RUN apk add --no-cache --update podman
+    WITH DOCKER
+        RUN sed -i 's/\/var\/lib\/containers\/storage/\$EARTHLY_DOCKERD_DATA_ROOT/g' /etc/containers/storage.conf && \
+            podman run --name foo --rm docker.io/library/alpine:3.13 cat /etc/alpine-release
+    END
+EOF
+
+
+./build/linux/amd64/earthly -P ~/podman-in-earthly+test
