@@ -118,7 +118,7 @@ else
     NOGRAPHICS=""
 fi
 
-#ENABLE_KVM="-enable-kvm"
+ENABLE_KVM="-enable-kvm"
 
 cat > qemu.cmd <<EOF
 qemu-system-x86_64 \
@@ -128,6 +128,7 @@ qemu-system-x86_64 \
    -smp "$NUM_CORES" \
    -hda "$HOSTNAME.img" \
    -cdrom cidata.iso \
+   -cpu max \
    $NOGRAPHICS \
    $ENABLE_KVM \
    -netdev user,id=mynet0,hostfwd=tcp::$SSH_FORWARD_PORT-:22 -device e1000,netdev=mynet0 &
@@ -161,6 +162,14 @@ while true; do
     echo "sleeping 10 seconds before retrying; $timer_remaining seconds left before giving up"
     sleep 10
 done
+
+
+if [ -n "$DOCKERHUB_MIRROR_USERNAME" ] && [ -n "$DOCKERHUB_MIRROR_PASSWORD" ]; then
+    echo "copying DOCKERHUB_MIRROR_USERNAME and DOCKERHUB_MIRROR_PASSWORD values to VM"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_FORWARD_PORT $USERNAME@127.0.0.1 "echo $DOCKERHUB_MIRROR_USERNAME > ~/DOCKERHUB_MIRROR_USERNAME && echo $DOCKERHUB_MIRROR_PASSWORD > ~/DOCKERHUB_MIRROR_PASSWORD"
+else
+    echo "failed to setup dockerhub mirror, did you sudo -E?" && exit 1
+fi
 
 ENABLE_CGROUP_V2="true"
 if [ -n "$ENABLE_CGROUP_V2" ]; then

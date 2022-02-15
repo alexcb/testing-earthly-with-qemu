@@ -31,6 +31,15 @@ echo \
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io
 
+if [ -f "/home/ubuntu/DOCKERHUB_MIRROR_USERNAME" ]; then
+    export DOCKERHUB_MIRROR_USERNAME="$(cat /home/ubuntu/DOCKERHUB_MIRROR_USERNAME)"
+    export DOCKERHUB_MIRROR_PASSWORD="$(cat /home/ubuntu/DOCKERHUB_MIRROR_PASSWORD)"
+    echo "logging into earthly docker mirror"
+    docker login registry-1.docker.io.mirror.corp.earthly.dev --username "$DOCKERHUB_MIRROR_USERNAME" --password "$DOCKERHUB_MIRROR_PASSWORD"
+fi
+
+test -f ~/.docker/config.json
+
 docker run hello-world
 
 usermod -aG docker ubuntu
@@ -41,6 +50,8 @@ earthly github.com/earthly/hello-world+hello
 
 git clone https://github.com/earthly/earthly.git
 cd earthly
+git checkout acb/cgroup-v2
+git rev-parse HEAD
 
 earthly +for-linux
 
@@ -52,7 +63,8 @@ test:
     RUN apk add --no-cache --update podman
     WITH DOCKER
         RUN sed -i 's/\/var\/lib\/containers\/storage/\$EARTHLY_DOCKERD_DATA_ROOT/g' /etc/containers/storage.conf && \
-            podman run --name foo --rm docker.io/library/alpine:3.13 cat /etc/alpine-release
+	    cat /etc/containers/storage.conf && \
+            podman --log-level=debug run --name foo --rm docker.io/library/alpine:3.13 cat /etc/alpine-release
     END
 EOF
 
