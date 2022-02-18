@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+test "$UID" = 0 || (echo "this must be run as root" && exit 1)
+
 # check for cgroupv2
 ls /sys/fs/cgroup/cgroup.subtree_control || (echo cgroups v2 not found && exit 1)
 
