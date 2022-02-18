@@ -20,7 +20,7 @@ cat "$grppath/cgroup.controllers"
 echo "to view what controllers are enabled, run: cat $grppath/cgroup.subtree_control"
 cat "$grppath/cgroup.subtree_control"
 
-/bin/sh -c 'while true; do echo -n hello && date; sleep 1; done' &
+/bin/sh -c 'while true; do echo -n hello && date; sleep 10; done' &
 shproc="$!"
 echo "moving proc $shproc to $grp"
 
