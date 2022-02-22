@@ -15,8 +15,12 @@ systemd:
 
     # final debug command
     RUN echo 'ls -la /sbin/init' >> /usr/local/bin/entrypoint
+    RUN echo 'ls -la /usr/bin/systemd' >> /usr/local/bin/entrypoint
+    RUN echo 'ls -la /lib/systemd/systemd' >> /usr/local/bin/entrypoint
     RUN echo 'echo "about to run $@"' >> /usr/local/bin/entrypoint
-    RUN echo 'exec "$@"' >> /usr/local/bin/entrypoint
+    #RUN echo 'exec "hostname" "--help"' >> /usr/local/bin/entrypoint # this correctly shows hostname help rather than the actual hostname -- exec works fine here
+    RUN echo 'exec "/lib/systemd/systemd" "--help"' >> /usr/local/bin/entrypoint # systemd is ignoring the --help flag (or any other flag for that matter)
+    #RUN echo 'exec "$@"' >> /usr/local/bin/entrypoint
 
     RUN head -n 2 /usr/local/bin/entrypoint | grep "point got"
     RUN tail -n 2 /usr/local/bin/entrypoint | grep "about to run"
