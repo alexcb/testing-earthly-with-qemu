@@ -1,13 +1,27 @@
 #!/bin/sh
 set -ex
 
-docker run --rm --privileged --name kind-test -d kindest/node:v1.21.1
+IMG="${IMG:-kindest/node:v1.21.1}"
+echo "using IMG=$IMG"
+
+docker run --privileged --name kind-test --entrypoint "" -d "$IMG" "/usr/local/bin/entrypoint" "/sbin/init" "--log_level=debug"
+
+finish() {
+  echo "finishing"
+  docker logs kind-test
+  docker inspect kind-test | grep -C 10 entry
+  if [ -z "$KEEP" ]; then
+    docker rm --force kind-test
+  fi
+}
+trap finish EXIT
 
 timeout="30"
 until="$(expr "$(date +%s)" + "$timeout")"
 while true; do
+  docker exec kind-test /bin/sh -c 'ps' > /tmp/systemd.test.logs
   set +e
-  docker exec kind-test /bin/sh -c 'ps' | grep systemd | awk '{print $1}' | grep '^1$'
+  cat /tmp/systemd.test.logs | grep systemd | awk '{print $1}' | grep '^1$'
   code=$?
   set -e
   if [ "$code" -eq "0" ]; then
