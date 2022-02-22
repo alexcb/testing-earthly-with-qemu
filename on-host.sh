@@ -2,7 +2,25 @@
 set -ex
 
 docker run --rm -ti --privileged --name kind-test -d kindest/node:v1.21.1
-sleep 1
+
+timeout="15"
+until="$(expr "$(date +%s)" + "$timeout")"
+while true; do
+  set +e
+  docker exec kind-test /bin/sh -c 'ps' | grep systemd | awk '{print $1}' | grep '^1$'
+  code=$?
+  set -e
+  if [ "$code" -eq "0" ]; then
+    echo "systemd has started in container"
+    break
+  fi
+  if [ "$until" -lt "$(date +%s)" ]; then
+    echo "systemd failed to start within $timeout seconds"
+    exit 1
+  fi
+  sleep 1
+done
+
 docker exec -ti kind-test /bin/sh -c 'hostname'
 docker exec -ti kind-test /bin/sh -c 'service --status-all'
 
@@ -37,3 +55,5 @@ if ! grep "say this" /tmp/repro.log > /dev/null; then
     echo "say this not found in log"
     exit 1
 fi
+
+echo "systemd via kindest/node works"
