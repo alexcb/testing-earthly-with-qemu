@@ -14,6 +14,7 @@ systemd:
     #RUN echo 'ls -la $@' >> /usr/local/bin/entrypoint # should say /sbin/init -> /usr/bin/systemd
 
     # final debug command
+    RUN echo 'ls -la /sbin/init' >> /usr/local/bin/entrypoint
     RUN echo 'echo "about to run $@"' >> /usr/local/bin/entrypoint
     RUN echo 'exec "$@"' >> /usr/local/bin/entrypoint
 
