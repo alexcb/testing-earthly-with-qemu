@@ -30,5 +30,5 @@ test:
     FROM earthly/dind:alpine
     COPY on-host.sh .
     WITH DOCKER --load sd:latest=+systemd
-        RUN --no-cache IMG=sd ./on-host.sh
+        RUN --no-cache KEEP=1 IMG=sd ./on-host.sh
     END
