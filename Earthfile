@@ -37,6 +37,12 @@ LogTarget=console
 DefaultStandardOutput=console
 " > /etc/systemd/system.conf
 
+    RUN echo "[Journal]
+LogLevel=debug
+MaxLevelKMsg=debug
+ForwardToKMsg=yes
+" > /etc/systemd/journald.conf
+
     # This shouldn't be needed, as it's defined in kindest/node
     #ENTRYPOINT [ "/usr/local/bin/entrypoint", "/sbin/init" ]
 
