@@ -7,19 +7,21 @@ echo "using IMG=$IMG"
 docker run --privileged --name kind-test -d $EXTRA "$IMG"
 
 finish() {
+  rc=$?;
+  set +e
   echo "==dumping kind-test logs=="
-  docker logs kind-test
+  docker logs kind-test 2>&1 | tail -n 100
 
   echo "==dumpking kmsg logs from kind-test=="
-  docker exec kind-test /bin/sh -c 'dd if=/dev/kmsg iflag=nonblock || true'
+  docker exec kind-test /bin/sh -c 'dd if=/dev/kmsg iflag=nonblock | tail -n 100'
 
   echo "==dumpking journalctl logs from kind-test=="
-  docker exec kind-test /bin/sh -c 'journalctl || true'
+  docker exec kind-test /bin/sh -c 'journalctl | tail -n 100'
 
-  docker inspect kind-test | grep -C 10 entry
   if [ -z "$KEEP" ]; then
     docker rm --force kind-test
   fi
+  exit $rc
 }
 trap finish EXIT
 
@@ -73,7 +75,7 @@ sleep 1
 docker exec kind-test /bin/sh -c 'systemctl start repro'
 sleep 1
 
-docker exec kind-test /bin/sh -c 'systemctl status repro' > /tmp/repro.log
+docker exec kind-test /bin/sh -c 'journalctl -u repro.service' > /tmp/repro.log
 sleep 1
 
 if ! grep "say this" /tmp/repro.log > /dev/null; then
