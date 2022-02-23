@@ -43,6 +43,9 @@ MaxLevelKMsg=debug
 ForwardToKMsg=yes
 " > /etc/systemd/journald.conf
 
+	# this assumes [Service] is the last section
+    RUN echo "Environment=SYSTEMD_LOG_LEVEL=debug" >> /lib/systemd/system/systemd-journald.service
+
     # This shouldn't be needed, as it's defined in kindest/node
     #ENTRYPOINT [ "/usr/local/bin/entrypoint", "/sbin/init" ]
 
