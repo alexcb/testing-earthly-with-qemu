@@ -4,11 +4,22 @@ set -ex
 IMG="${IMG:-kindest/node:v1.21.1}"
 echo "using IMG=$IMG"
 
-docker run --privileged --name kind-test --entrypoint "" -d "$IMG" "/usr/local/bin/entrypoint" "/sbin/init" "--log_level=debug"
+docrun() {
+  echo starting kind-test container
+  docker run --privileged --name kind-test -e SYSTEMD_LOG_LEVEL=debug "$IMG" 2>&1 | tee /tmp/kind-test-systemd.log
+  echo kind-test container finished
+}
+
+docrun &
+sleep 1
 
 finish() {
-  echo "finishing"
+  echo "dumping kind-test logs"
   docker logs kind-test
+
+  echo "dumping systemd log"
+  cat /tmp/kind-test-systemd.log
+
   docker inspect kind-test | grep -C 10 entry
   if [ -z "$KEEP" ]; then
     docker rm --force kind-test

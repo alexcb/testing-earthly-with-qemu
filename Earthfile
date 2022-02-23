@@ -19,13 +19,21 @@ systemd:
     RUN echo 'ls -la /lib/systemd/systemd' >> /usr/local/bin/entrypoint
     RUN echo 'echo "about to run $@"' >> /usr/local/bin/entrypoint
     #RUN echo 'exec "hostname" "--help"' >> /usr/local/bin/entrypoint # this correctly shows hostname help rather than the actual hostname -- exec works fine here
-    RUN echo 'exec "/lib/systemd/systemd" "--help"' >> /usr/local/bin/entrypoint # systemd is ignoring the --help flag (or any other flag for that matter)
-    #RUN echo 'exec "$@"' >> /usr/local/bin/entrypoint
+    #RUN echo 'exec "/lib/systemd/systemd" "--help"' >> /usr/local/bin/entrypoint # systemd is ignoring the --help flag (or any other flag for that matter)
+    RUN echo 'exec "$@"' >> /usr/local/bin/entrypoint
 
     RUN head -n 2 /usr/local/bin/entrypoint | grep "point got"
     RUN tail -n 2 /usr/local/bin/entrypoint | grep "about to run"
 
+    #RUN cat /usr/local/bin/entrypoint && false
     RUN chmod +x /usr/local/bin/entrypoint
+
+    RUN echo "[Manager]
+LogLevel=debug
+LogLocation=yes
+LogTarget=console
+DefaultStandardOutput=console
+" > /etc/systemd/system.conf
 
     # This shouldn't be needed, as it's defined in kindest/node
     #ENTRYPOINT [ "/usr/local/bin/entrypoint", "/sbin/init" ]
