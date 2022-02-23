@@ -6,7 +6,6 @@ echo "using IMG=$IMG"
 
 docrun() {
   echo starting kind-test container
-  EXTRA=""
   docker run --privileged --name kind-test $EXTRA "$IMG" 2>&1 | tee /tmp/kind-test-systemd.log
   echo kind-test container finished
 }
@@ -49,7 +48,7 @@ done
 
 docker exec kind-test /bin/sh -c 'hostname'
 
-#docker exec kind-test /bin/sh -c 'busctl --list'
+#docker exec kind-test /bin/sh -c 'busctl --list' # this also fails on cgroups-v1, but doesn't prevent it from working.
 
 docker exec kind-test /bin/sh -c 'service --status-all'
 
