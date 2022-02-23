@@ -4,21 +4,17 @@ set -ex
 IMG="${IMG:-kindest/node:v1.21.1}"
 echo "using IMG=$IMG"
 
-docrun() {
-  echo starting kind-test container
-  docker run --privileged --name kind-test $EXTRA "$IMG" 2>&1 | tee /tmp/kind-test-systemd.log
-  echo kind-test container finished
-}
-
-docrun &
-sleep 1
+docker run --privileged --name kind-test -d $EXTRA "$IMG"
 
 finish() {
-  echo "dumping kind-test logs"
+  echo "==dumping kind-test logs=="
   docker logs kind-test
 
-  echo "dumping systemd log"
-  cat /tmp/kind-test-systemd.log
+  echo "==dumpking kmsg logs from kind-test=="
+  docker exec kind-test /bin/sh -c 'dd if=/dev/kmsg iflag=nonblock || true'
+
+  echo "==dumpking journalctl logs from kind-test=="
+  docker exec kind-test /bin/sh -c 'journalctl || true'
 
   docker inspect kind-test | grep -C 10 entry
   if [ -z "$KEEP" ]; then
@@ -47,6 +43,8 @@ while true; do
 done
 
 docker exec kind-test /bin/sh -c 'hostname'
+
+docker exec kind-test /bin/sh -c 'dd if=/dev/kmsg iflag=nonblock || true'
 
 #docker exec kind-test /bin/sh -c 'busctl --list' # this also fails on cgroups-v1, but doesn't prevent it from working.
 
