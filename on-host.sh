@@ -6,7 +6,8 @@ echo "using IMG=$IMG"
 
 docrun() {
   echo starting kind-test container
-  docker run --privileged --name kind-test -e SYSTEMD_LOG_LEVEL=debug "$IMG" 2>&1 | tee /tmp/kind-test-systemd.log
+  EXTRA=""
+  docker run --privileged --name kind-test $EXTRA "$IMG" 2>&1 | tee /tmp/kind-test-systemd.log
   echo kind-test container finished
 }
 
@@ -47,6 +48,9 @@ while true; do
 done
 
 docker exec kind-test /bin/sh -c 'hostname'
+
+#docker exec kind-test /bin/sh -c 'busctl --list'
+
 docker exec kind-test /bin/sh -c 'service --status-all'
 
 data="$(echo '[Unit]

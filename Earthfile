@@ -42,5 +42,5 @@ test:
     FROM earthly/dind:alpine
     COPY on-host.sh .
     WITH DOCKER --load sd:latest=+systemd
-        RUN --no-cache KEEP=1 IMG=sd ./on-host.sh
+        RUN --no-cache KEEP=1 IMG=sd EXTRA="-e SYSTEMD_LOG_LEVEL=debug" ./on-host.sh
     END
